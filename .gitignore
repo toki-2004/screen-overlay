@@ -4,3 +4,4 @@ HANDOVER.md
 build/
 dist/
 *.zip
+.release-notes-*.md
