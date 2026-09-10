@@ -8,6 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import overlay as O  # noqa: E402
+from PyQt5.QtCore import Qt  # noqa: E402
 from PyQt5.QtGui import QPixmap  # noqa: E402
 from PyQt5.QtWidgets import QApplication  # noqa: E402
 
@@ -77,6 +78,37 @@ assert (win.x(), win.y()) == (geo.x() + (geo.width() - 4) // 2,
 win.pixmap = None
 win.native_size()
 assert (win.width(), win.height()) == (24, 24), (win.width(), win.height())
+
+# 全局快捷键：文本 → (修饰键, 虚拟键码)
+assert O.parse_hotkey("Ctrl+Alt+H") == (0x0002 | 0x0001, 0x48)
+assert O.parse_hotkey("ctrl+shift+space") == (0x0002 | 0x0004, 0x20)
+assert O.parse_hotkey("F9") == (0, 0x78)
+assert O.parse_hotkey("") == (0, 0)
+
+# 载入图片后路径落盘，重启能原样恢复图片与参数
+png = os.path.join(tempfile.mkdtemp(), "t.png")
+pm = QPixmap(6, 5)
+pm.fill(Qt.red)
+assert pm.save(png), "测试图片没存下来"
+win.pixmap = None
+win.config["image"] = ""
+win.scale = 1.0
+assert win.load_image(png)
+assert win.config["image"] == png, win.config["image"]
+assert O.load_config()["image"] == png, O.load_config()
+rebooted = O.Overlay(O.load_config())
+assert rebooted.pixmap is not None, "重启后没恢复上次的图片"
+assert (rebooted.width(), rebooted.height()) == (6, 5), (rebooted.width(), rebooted.height())
+
+# 快捷键设置同样落盘
+win.set_hotkey("Ctrl+Shift+F9")
+assert O.load_config()["hotkey"] == "Ctrl+Shift+F9", O.load_config()
+
+# 菜单「退出」必须先落盘（托盘退出不触发 closeEvent，老版本就丢在这里）
+win.mode = "free"
+win.move(321, 654)
+win.quit_app()
+assert O.load_config()["pos"] == [321, 654], O.load_config()
 
 assert not win.grab().isNull(), "绘制失败"
 

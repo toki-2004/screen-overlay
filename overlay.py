@@ -11,8 +11,9 @@ import sys
 
 from PyQt5.QtCore import QPointF, Qt
 from PyQt5.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import (QActionGroup, QApplication, QFileDialog, QMenu,
-                             QSystemTrayIcon, QWidget)
+from PyQt5.QtWidgets import (QActionGroup, QApplication, QDialog,
+                             QDialogButtonBox, QFileDialog, QKeySequenceEdit,
+                             QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget)
 
 POS_LABELS = (("tl", "左上"), ("tr", "右上"), ("bl", "左下"),
               ("br", "右下"), ("center", "居中"))
@@ -21,8 +22,50 @@ CROSS_COLORS = (("红", "#ff3b30"), ("绿", "#32ff5a"),
 OPACITIES = (100, 85, 70, 55, 40)
 DEFAULT_MARGIN = 12
 DEFAULT_CROSS = 24
+DEFAULT_HOTKEY = "Ctrl+Alt+H"
 MIN_SCALE, MAX_SCALE = 0.05, 20.0
 MIN_CROSS, MAX_CROSS = 8, 400
+
+WM_HOTKEY = 0x0312
+MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN, MOD_NOREPEAT = 0x0001, 0x0002, 0x0004, 0x0008, 0x4000
+MOD_NAMES = {"ctrl": MOD_CONTROL, "control": MOD_CONTROL, "alt": MOD_ALT,
+             "shift": MOD_SHIFT, "meta": MOD_WIN, "win": MOD_WIN}
+VK_NAMES = {"space": 0x20, "tab": 0x09, "return": 0x0D, "enter": 0x0D, "esc": 0x1B,
+            "escape": 0x1B, "backspace": 0x08, "del": 0x2E, "delete": 0x2E,
+            "ins": 0x2D, "insert": 0x2D, "home": 0x24, "end": 0x23, "pgup": 0x21,
+            "pgdown": 0x22, "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
+            "minus": 0xBD, "equal": 0xBB, "plus": 0xBB, "comma": 0xBC, "period": 0xBE,
+            "slash": 0xBF, "backslash": 0xDC, "semicolon": 0xBA, "quote": 0xDE,
+            "bracketleft": 0xDB, "bracketright": 0xDD, "grave": 0xC0}
+
+
+def parse_hotkey(text):
+    """把 "Ctrl+Alt+H" 这类文本解析成 (RegisterHotKey 修饰键, 虚拟键码)。"""
+    mods, vk = 0, 0
+    for part in (text or "").replace(" ", "").split("+"):
+        low = part.lower()
+        if not low:
+            continue
+        if low in MOD_NAMES:
+            mods |= MOD_NAMES[low]
+        elif len(part) == 1 and part.isalnum():
+            vk = ord(part.upper())
+        elif low[0] == "f" and low[1:].isdigit() and 1 <= int(low[1:]) <= 24:
+            vk = 0x70 + int(low[1:]) - 1
+        else:
+            vk = VK_NAMES.get(low, 0)
+    return mods, vk
+
+
+class _POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+class _MSG(ctypes.Structure):
+    """nativeEvent 里解析 Windows 消息用（对齐交给 ctypes，别手排偏移）。"""
+    _fields_ = [("hwnd", ctypes.c_void_p), ("message", ctypes.c_uint),
+                ("wParam", ctypes.c_size_t), ("lParam", ctypes.c_ssize_t),
+                ("time", ctypes.c_uint), ("pt", _POINT)]
 
 
 def base_dir():
@@ -66,6 +109,8 @@ class Overlay(QWidget):
         self.cross_size = int(cfg.get("cross_size") or DEFAULT_CROSS)
         self.top = bool(cfg.get("top", True))
         self.click_through = bool(cfg.get("click_through", False))
+        # 显式留空 = 用户关掉了快捷键；缺字段 = 用默认
+        self.hotkey = DEFAULT_HOTKEY if cfg.get("hotkey") is None else str(cfg.get("hotkey"))
         self.pixmap = None
         self._drag = None
 
@@ -84,6 +129,7 @@ class Overlay(QWidget):
         self.menu = self._build_menu()
         self.tray = self._build_tray()
         self.place()
+        self._register_hotkey()
 
     # ---------- 内容 ----------
     def load_image(self, path, save=True):
@@ -91,6 +137,7 @@ class Overlay(QWidget):
         if pm.isNull():
             return False
         self.pixmap = pm
+        self.config["image"] = path  # 记住路径，下次启动原样恢复
         self._fit_to_content()
         self.place()
         if save:
@@ -99,6 +146,7 @@ class Overlay(QWidget):
 
     def use_crosshair(self):
         self.pixmap = None
+        self.config["image"] = ""
         self._fit_to_content()
         self.place()
         self.update()
@@ -215,6 +263,67 @@ class Overlay(QWidget):
                                 0, 0, 0, 0, SWP_NOSIZE_NOMOVE_NOACTIVATE)
         except Exception:
             pass
+        self._register_hotkey()  # 窗口重建后 hwnd 变了，热键要重新注册
+
+    # ---------- 显示 / 隐藏全局快捷键 ----------
+    HOTKEY_ID = 1
+
+    def _register_hotkey(self):
+        """注册全局热键（窗口没有焦点时也生效）。返回是否成功。"""
+        if sys.platform != "win32":
+            return False
+        user32 = ctypes.windll.user32
+        try:
+            user32.UnregisterHotKey(int(self.winId()), self.HOTKEY_ID)
+        except Exception:
+            pass
+        mods, vk = parse_hotkey(self.hotkey)
+        if not vk:
+            return True  # 留空 = 不设快捷键
+        try:
+            return bool(user32.RegisterHotKey(int(self.winId()), self.HOTKEY_ID,
+                                              mods | MOD_NOREPEAT, vk))
+        except Exception:
+            return False
+
+    def set_hotkey(self, seq_text):
+        self.hotkey = (seq_text or "").strip()
+        ok = self._register_hotkey()
+        self._refresh_hotkey_text()
+        self._save()
+        if self.hotkey and not ok:
+            self.tray.showMessage("屏幕贴图 / 准星",
+                                  "快捷键 %s 注册失败，可能已被其他程序占用。" % self.hotkey)
+
+    def _refresh_hotkey_text(self):
+        self.act_hotkey.setText("设置显隐快捷键…（当前 %s）" % (self.hotkey or "无"))
+
+    def _pick_hotkey(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("设置显示 / 隐藏快捷键")
+        dlg.setWindowFlag(Qt.WindowStaysOnTopHint, True)  # 主窗口置顶，对话框别被压住
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(QLabel("按下新的快捷键（清空则取消快捷键）：", dlg))
+        edit = QKeySequenceEdit(self.hotkey, dlg)
+        layout.addWidget(edit)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dlg)
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+        if dlg.exec_() == QDialog.Accepted:
+            # 只取第一段组合键，避免 "Ctrl+A, B" 这种多段序列
+            self.set_hotkey(edit.keySequence().toString().split(",")[0])
+
+    def nativeEvent(self, event_type, message):
+        if event_type in (b"windows_generic_MSG", b"windows_dispatcher_MSG"):
+            try:
+                msg = ctypes.cast(int(message), ctypes.POINTER(_MSG)).contents
+                if msg.message == WM_HOTKEY and msg.wParam == self.HOTKEY_ID:
+                    self.toggle_visible()
+                    return True, 0
+            except Exception:
+                pass
+        return super().nativeEvent(event_type, message)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -273,18 +382,24 @@ class Overlay(QWidget):
         else:
             self.show()
 
+    def quit_app(self):
+        """退出前落盘：托盘菜单的"退出"不会触发 closeEvent。"""
+        self._save()
+        QApplication.quit()
+
     def closeEvent(self, event):
         self._save()
         super().closeEvent(event)
 
     def _save(self):
         self.config.update({
-            "image": "" if self.pixmap is None else self.config.get("image", ""),
+            "image": self.config.get("image", ""),
             "mode": self.mode,
             "margin": self.margin,
             "scale": round(self.scale, 4),
             "cross_color": self.cross_color,
             "cross_size": self.cross_size,
+            "hotkey": self.hotkey,
             "top": self.top,
             "click_through": self.click_through,
             "opacity": round(self.windowOpacity(), 2),
@@ -345,7 +460,9 @@ class Overlay(QWidget):
         self.act_click.triggered.connect(self.set_click_through)
         menu.addSeparator()
         menu.addAction("显示 / 隐藏", self.toggle_visible)
-        menu.addAction("退出", QApplication.quit)
+        self.act_hotkey = menu.addAction("", self._pick_hotkey)
+        self._refresh_hotkey_text()
+        menu.addAction("退出", self.quit_app)
         return menu
 
     def _build_tray(self):
@@ -383,6 +500,8 @@ def main():
     if len(sys.argv) > 1:  # overlay.py 贴图.png 可直接开图
         cfg["image"] = sys.argv[1]
     win = Overlay(cfg)
+    # 托盘"退出"走 QApplication.quit()，不会触发 closeEvent，这里兜住保存
+    app.aboutToQuit.connect(win._save)
     win.show()
     return app.exec_()
 

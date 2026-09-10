@@ -16,12 +16,15 @@ approach follows [desktop-pet-ai](https://github.com/toki-2004/desktop-pet-ai).
 - Placement: top-left / top-right / bottom-left / bottom-right snapping
   (adjustable margin) and screen center
 - Always-on-top, click-through, opacity 100 / 85 / 70 / 55 / 40%
-- Settings are saved to `overlay_config.json`, which sits in the same directory
-  as the script or executable
+- Show / hide can be bound to a customizable global hotkey (default Ctrl+Alt+H;
+  leave it empty to disable)
+- The loaded image and every setting are saved on exit and restored on the next
+  launch; `overlay_config.json` sits in the same directory as the script or
+  executable
 
 ## Run
 
-Option 1: portable package. Download `screen-overlay-v1.0.4-win64.zip` from the
+Option 1: portable package. Download `screen-overlay-v1.0.5-win64.zip` from the
 [Releases](../../releases) page and run `screen-overlay.exe`. All dependencies
 sit in the same directory as the executable and must be kept together; the
 license file and the configuration file are located there as well. Keeping the
@@ -43,6 +46,7 @@ python overlay.py sticker.png  # open the given image
 | Wheel | Zoom in / out |
 | Right click | Menu: load image, built-in crosshair, corner, margin, zoom in / out, native size (1:1), crosshair color, opacity, always-on-top, click-through, show / hide, quit |
 | Tray icon click | Show / hide the window |
+| Global hotkey (default Ctrl+Alt+H) | Show / hide the window, also while it is unfocused |
 
 - Snapping and centering are calculated from the full geometry of the screen the
   window currently sits on, taskbar area included: the center is the real screen
@@ -54,6 +58,12 @@ python overlay.py sticker.png  # open the given image
   it can only be controlled from the tray icon menu.
 - When used as an in-game crosshair, the game must run in borderless or windowed
   mode; exclusive fullscreen covers this window.
+- The global hotkey can be changed under "设置显隐快捷键…" in the menu; clearing
+  the input removes the hotkey. If registration is reported as failed, the
+  combination is already taken by another program, so pick another one.
+- The image path and all settings (margin, zoom, position, color, opacity,
+  always-on-top, click-through, hotkey) are written to the configuration file on
+  exit and restored on the next launch; deleting that file restores defaults.
 
 ## Self-check
 
@@ -86,6 +96,9 @@ so no OSI-approved license can forbid commercial use.
 
 ## Version
 
+- v1.0.5 added a customizable global show / hide hotkey and fixed the lost image
+  path and settings: the image path was never stored, and quitting from the tray
+  did not write the configuration file
 - v1.0.4 adopted a noncommercial license (PolyForm Noncommercial 1.0.0); the
   full license text ships inside the release package
 - v1.0.3 added "native size (1:1)": one click back to the image's real pixel size
