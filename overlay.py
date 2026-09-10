@@ -135,12 +135,13 @@ class Overlay(QWidget):
         self.move(x, y)
 
     def _screen_geo(self):
+        """整块屏幕，含任务栏区域——贴边/居中就是屏幕真实的角与中心。"""
         screen = QApplication.screenAt(self.frameGeometry().center()) or QApplication.primaryScreen()
-        return screen.availableGeometry()
+        return screen.geometry()
 
     def _on_any_screen(self, x, y):
         cx, cy = x + self.width() // 2, y + self.height() // 2
-        return any(s.availableGeometry().contains(cx, cy) for s in QApplication.screens())
+        return any(s.geometry().contains(cx, cy) for s in QApplication.screens())
 
     def set_mode(self, key):
         self.place(key)

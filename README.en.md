@@ -40,9 +40,11 @@ python overlay.py sticker.png  # open an image directly
 | Right click | Menu: load image, crosshair, corner, margin, color, opacity, top, click-through, quit |
 | Tray icon click | Show / hide the window |
 
-- Corners and center are computed from the available geometry of the screen the
-  window currently sits on (taskbar avoided). On multi-monitor setups, drag the
-  window to the target screen first.
+- Corners and center are computed from the full geometry of the screen the window
+  currently sits on, taskbar area included: center means the real screen center
+  and corners mean the real screen corners, so the taskbar never shifts them.
+  Being always-on-top, the window is drawn over the taskbar when placed low.
+  On multi-monitor setups, drag the window to the target screen first.
 - With click-through enabled the window ignores the mouse; use the tray menu.
 - As an in-game crosshair, the game must run in borderless/windowed mode;
   exclusive fullscreen covers the overlay.
@@ -60,6 +62,8 @@ python test_overlay.py
 
 ## Version
 
+- v1.0.2 placement now uses the full screen geometry (taskbar included), so the
+  taskbar no longer shifts centering / corner snapping
 - v1.0.1 packaging only: dropped unused Qt components (software OpenGL / ANGLE /
   Qml / Quick / non-Chinese translations), unpacked size 96.7MB -> 45.2MB, no
   functional change from v1.0.0

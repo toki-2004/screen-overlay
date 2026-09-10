@@ -19,6 +19,9 @@ win.margin = 10
 win.resize(60, 40)
 geo = win._screen_geo()
 
+# 定位用整块屏幕（含任务栏），不是 availableGeometry：任务栏不该把窗口顶偏
+assert geo == QApplication.primaryScreen().geometry(), (geo, QApplication.primaryScreen().geometry())
+
 cases = (
     ("tl", geo.left() + 10, geo.top() + 10),
     ("tr", geo.right() - 60 + 1 - 10, geo.top() + 10),
