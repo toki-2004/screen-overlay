@@ -62,6 +62,22 @@ win.zoom(1.5)
 assert (win.width(), win.height()) == (60, 30), (win.width(), win.height())
 win.place("tl")
 assert (win.x(), win.y()) == (geo.left() + 10, geo.top() + 10), (win.x(), win.y())
+
+# 菜单项「原始大小（1:1）」：走菜单触发，4x4 的图就是 4x4 个像素
+native_action = [a for a in win.menu.actions() if a.text().startswith("原始大小")][0]
+win.pixmap = QPixmap(4, 4)
+win.pixmap.fill()
+win.scale = 3.7
+native_action.trigger()
+assert (win.width(), win.height()) == (4, 4), (win.width(), win.height())
+win.place("center")
+win.native_size()
+assert (win.x(), win.y()) == (geo.x() + (geo.width() - 4) // 2,
+                              geo.y() + (geo.height() - 4) // 2), (win.x(), win.y())
+win.pixmap = None
+win.native_size()
+assert (win.width(), win.height()) == (24, 24), (win.width(), win.height())
+
 assert not win.grab().isNull(), "绘制失败"
 
 print("OK")

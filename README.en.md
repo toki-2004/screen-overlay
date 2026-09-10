@@ -10,6 +10,7 @@ or the center, with optional click-through. The overlay approach follows
 ## Features
 
 - Load PNG / JPG / BMP / WebP stickers, drawn at the original aspect ratio
+- One-click reset to native size (1:1 — a 4x4 image covers 4x4 screen pixels)
 - Built-in crosshair: red / green / cyan / white, with a center gap and dot
 - Placement: top-left / top-right / bottom-left / bottom-right (adjustable
   margin), plus screen center
@@ -37,7 +38,7 @@ python overlay.py sticker.png  # open an image directly
 | --- | --- |
 | Left drag | Move the sticker (switches to free position) |
 | Wheel | Zoom in / out |
-| Right click | Menu: load image, crosshair, corner, margin, color, opacity, top, click-through, quit |
+| Right click | Menu: load image, crosshair, corner, margin, zoom in/out, native size (1:1), color, opacity, top, click-through, quit |
 | Tray icon click | Show / hide the window |
 
 - Corners and center are computed from the full geometry of the screen the window
@@ -62,6 +63,7 @@ python test_overlay.py
 
 ## Version
 
+- v1.0.3 added "native size (1:1)": one click back to the image's real pixel size
 - v1.0.2 placement now uses the full screen geometry (taskbar included), so the
   taskbar no longer shifts centering / corner snapping
 - v1.0.1 packaging only: dropped unused Qt components (software OpenGL / ANGLE /

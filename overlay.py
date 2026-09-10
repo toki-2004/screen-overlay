@@ -20,6 +20,7 @@ CROSS_COLORS = (("红", "#ff3b30"), ("绿", "#32ff5a"),
                 ("青", "#00e5ff"), ("白", "#ffffff"))
 OPACITIES = (100, 85, 70, 55, 40)
 DEFAULT_MARGIN = 12
+DEFAULT_CROSS = 24
 MIN_SCALE, MAX_SCALE = 0.05, 20.0
 MIN_CROSS, MAX_CROSS = 8, 400
 
@@ -62,7 +63,7 @@ class Overlay(QWidget):
         self.margin = int(cfg.get("margin") or DEFAULT_MARGIN)
         self.mode = cfg.get("mode") or "center"
         self.cross_color = cfg.get("cross_color") or "红"
-        self.cross_size = int(cfg.get("cross_size") or 24)
+        self.cross_size = int(cfg.get("cross_size") or DEFAULT_CROSS)
         self.top = bool(cfg.get("top", True))
         self.click_through = bool(cfg.get("click_through", False))
         self.pixmap = None
@@ -166,6 +167,17 @@ class Overlay(QWidget):
         self.cross_color = name
         self.update()
         self._save()
+
+    def native_size(self):
+        """恢复到图片原生大小：4x4 的图就占 4x4 个屏幕像素。"""
+        if self.pixmap is not None:
+            # 高 DPI 屏上 Qt 按逻辑像素算，除以 dpr 才对得上物理像素
+            self.scale = 1.0 / max(1.0, float(self.devicePixelRatioF()))
+        else:
+            self.cross_size = DEFAULT_CROSS  # 准星没有原生尺寸，回默认
+        self._fit_to_content()
+        self.place()
+        self.update()
 
     def set_opacity(self, value):
         self.setWindowOpacity(max(0.1, min(1.0, float(value))))
@@ -305,6 +317,7 @@ class Overlay(QWidget):
         menu.addAction("边距 -2", lambda: self._do(self.set_margin, self.margin - 2))
         menu.addAction("放大", lambda: self._do(self.zoom, 1.1))
         menu.addAction("缩小", lambda: self._do(self.zoom, 1 / 1.1))
+        menu.addAction("原始大小（1:1）", lambda: self._do(self.native_size))
 
         color_menu = menu.addMenu("准星颜色")
         color_group = QActionGroup(color_menu)
