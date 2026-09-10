@@ -12,8 +12,9 @@ import sys
 from PyQt5.QtCore import QPointF, Qt
 from PyQt5.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (QActionGroup, QApplication, QDialog,
-                             QDialogButtonBox, QFileDialog, QKeySequenceEdit,
-                             QLabel, QMenu, QSystemTrayIcon, QVBoxLayout, QWidget)
+                             QDialogButtonBox, QFileDialog, QInputDialog,
+                             QKeySequenceEdit, QLabel, QMenu, QSystemTrayIcon,
+                             QVBoxLayout, QWidget)
 
 POS_LABELS = (("tl", "左上"), ("tr", "右上"), ("bl", "左下"),
               ("br", "右下"), ("center", "居中"))
@@ -102,11 +103,12 @@ class Overlay(QWidget):
         super().__init__(None)
         cfg = dict(config or {})
         self.config = cfg
-        self.scale = float(cfg.get("scale") or 1.0)
-        self.margin = int(cfg.get("margin") or DEFAULT_MARGIN)
+        # 注意用 None 判断：0 是有意义的取值（边距 0 = 贴紧），不能写 `or 默认值`
+        self.scale = 1.0 if cfg.get("scale") is None else float(cfg["scale"])
+        self.margin = DEFAULT_MARGIN if cfg.get("margin") is None else int(cfg["margin"])
         self.mode = cfg.get("mode") or "center"
         self.cross_color = cfg.get("cross_color") or "红"
-        self.cross_size = int(cfg.get("cross_size") or DEFAULT_CROSS)
+        self.cross_size = DEFAULT_CROSS if cfg.get("cross_size") is None else int(cfg["cross_size"])
         self.top = bool(cfg.get("top", True))
         self.click_through = bool(cfg.get("click_through", False))
         # 显式留空 = 用户关掉了快捷键；缺字段 = 用默认
@@ -121,7 +123,7 @@ class Overlay(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         self.setWindowTitle("屏幕贴图 / 准星")
-        self.setWindowOpacity(float(cfg.get("opacity") or 1.0))
+        self.setWindowOpacity(1.0 if cfg.get("opacity") is None else float(cfg["opacity"]))
 
         path = cfg.get("image") or ""
         if not (path and self.load_image(path, save=False)):
@@ -198,8 +200,24 @@ class Overlay(QWidget):
 
     def set_margin(self, value):
         self.margin = max(0, min(400, int(value)))
+        self._refresh_margin_text()
         self.place()
         self._save()
+
+    def _refresh_margin_text(self):
+        if getattr(self, "act_margin", None) is not None:
+            self.act_margin.setText("设置边距…（当前 %d 像素）" % self.margin)
+
+    def _pick_margin(self):
+        dlg = QInputDialog(self)
+        dlg.setWindowTitle("设置边距")
+        dlg.setLabelText("贴边时距屏幕边缘的像素数（0 为贴紧边角）：")
+        dlg.setInputMode(QInputDialog.IntInput)
+        dlg.setIntRange(0, 400)
+        dlg.setIntValue(self.margin)
+        dlg.setWindowFlag(Qt.WindowStaysOnTopHint, True)  # 主窗口置顶，对话框别被压住
+        if dlg.exec_() == QDialog.Accepted:
+            self.set_margin(dlg.intValue())
 
     # ---------- 大小 / 外观 ----------
     def zoom(self, factor):
@@ -428,8 +446,8 @@ class Overlay(QWidget):
             action.triggered.connect(lambda _checked=False, k=key: self.set_mode(k))
             group.addAction(action)
 
-        menu.addAction("边距 +2", lambda: self._do(self.set_margin, self.margin + 2))
-        menu.addAction("边距 -2", lambda: self._do(self.set_margin, self.margin - 2))
+        self.act_margin = menu.addAction("", self._pick_margin)
+        self._refresh_margin_text()
         menu.addAction("放大", lambda: self._do(self.zoom, 1.1))
         menu.addAction("缩小", lambda: self._do(self.zoom, 1 / 1.1))
         menu.addAction("原始大小（1:1）", lambda: self._do(self.native_size))

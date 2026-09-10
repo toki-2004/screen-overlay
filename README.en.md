@@ -14,7 +14,7 @@ approach follows [desktop-pet-ai](https://github.com/toki-2004/desktop-pet-ai).
 - One-click reset to native size (1:1 — a 4x4 image covers 4x4 screen pixels)
 - Built-in crosshair: red / green / cyan / white, with a center gap and dot
 - Placement: top-left / top-right / bottom-left / bottom-right snapping
-  (adjustable margin) and screen center
+  (margin typed in by hand, 0-400 px) and screen center
 - Always-on-top, click-through, opacity 100 / 85 / 70 / 55 / 40%
 - Show / hide can be bound to a customizable global hotkey (default Ctrl+Alt+H;
   leave it empty to disable)
@@ -24,7 +24,7 @@ approach follows [desktop-pet-ai](https://github.com/toki-2004/desktop-pet-ai).
 
 ## Run
 
-Option 1: portable package. Download `screen-overlay-v1.0.5-win64.zip` from the
+Option 1: portable package. Download `screen-overlay-v1.0.6-win64.zip` from the
 [Releases](../../releases) page and run `screen-overlay.exe`. All dependencies
 sit in the same directory as the executable and must be kept together; the
 license file and the configuration file are located there as well. Keeping the
@@ -44,7 +44,7 @@ python overlay.py sticker.png  # open the given image
 | --- | --- |
 | Left drag | Move the sticker; the placement mode becomes free |
 | Wheel | Zoom in / out |
-| Right click | Menu: load image, built-in crosshair, corner, margin, zoom in / out, native size (1:1), crosshair color, opacity, always-on-top, click-through, show / hide, quit |
+| Right click | Menu: load image, built-in crosshair, corner, set margin…, zoom in / out, native size (1:1), crosshair color, opacity, always-on-top, click-through, show / hide, quit |
 | Tray icon click | Show / hide the window |
 | Global hotkey (default Ctrl+Alt+H) | Show / hide the window, also while it is unfocused |
 
@@ -56,6 +56,8 @@ python overlay.py sticker.png  # open the given image
   target screen before choosing a placement.
 - Once click-through is enabled the window no longer receives mouse events, so
   it can only be controlled from the tray icon menu.
+- The gap used when snapping is typed in under "设置边距…"; 0 means flush against
+  the screen corner. The default is 12 pixels.
 - When used as an in-game crosshair, the game must run in borderless or windowed
   mode; exclusive fullscreen covers this window.
 - The global hotkey can be changed under "设置显隐快捷键…" in the menu; clearing
@@ -96,6 +98,9 @@ so no OSI-approved license can forbid commercial use.
 
 ## Version
 
+- v1.0.6 margin is now typed in by hand ("设置边距…", 0 = flush with the corner);
+  fixed `margin: 0` in the configuration being replaced by the default, which
+  made 0 silently turn back into 12
 - v1.0.5 added a customizable global show / hide hotkey and fixed the lost image
   path and settings: the image path was never stored, and quitting from the tray
   did not write the configuration file

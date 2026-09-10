@@ -110,6 +110,25 @@ win.move(321, 654)
 win.quit_app()
 assert O.load_config()["pos"] == [321, 654], O.load_config()
 
+# 边距：菜单项标出当前值（值由对话框手填），设为 0 后贴边真的贴紧不留缝
+assert win.act_margin.text() == "设置边距…（当前 12 像素）", win.act_margin.text()
+
+# 回归：配置里的 margin: 0 不能被 `or 默认值` 吃掉（否则设 0 重启又变 12）
+assert O.Overlay({"margin": 0}).margin == 0
+assert O.Overlay({"margin": 10}).margin == 10
+assert O.Overlay({}).margin == 12
+
+win.pixmap = QPixmap(80, 40)
+win.pixmap.fill()
+win.scale = 1.0
+win._fit_to_content()
+win.set_margin(0)
+win.place("br")
+assert win.margin == 0 and O.load_config()["margin"] == 0, O.load_config()
+assert (win.x() + win.width() - 1, win.y() + win.height() - 1) == (geo.right(), geo.bottom()), \
+    (win.x() + win.width() - 1, win.y() + win.height() - 1, geo.right(), geo.bottom())
+assert win.act_margin.text() == "设置边距…（当前 0 像素）", win.act_margin.text()
+
 assert not win.grab().isNull(), "绘制失败"
 
 print("OK")
