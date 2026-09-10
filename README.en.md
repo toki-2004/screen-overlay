@@ -18,7 +18,7 @@ or the center, with optional click-through. The overlay approach follows
 
 ## Run
 
-Option 1: portable exe. Download `screen-overlay-v1.0.0-win64.zip` from
+Option 1: portable exe. Download `screen-overlay-v1.0.1-win64.zip` from
 [Releases](../../releases), unzip and run `screen-overlay.exe`. Keep the whole
 folder — the dependencies sit next to the exe, and `overlay_config.json` is
 written there too.
@@ -60,6 +60,9 @@ python test_overlay.py
 
 ## Version
 
+- v1.0.1 packaging only: dropped unused Qt components (software OpenGL / ANGLE /
+  Qml / Quick / non-Chinese translations), unpacked size 96.7MB -> 45.2MB, no
+  functional change from v1.0.0
 - v1.0.0 first release: sticker / crosshair, five placements, always-on-top and
   click-through, tray menu
 

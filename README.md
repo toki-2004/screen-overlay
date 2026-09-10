@@ -17,7 +17,7 @@
 ## 运行
 
 方式一：免安装 exe。到 [Releases](../../releases) 下载
-`screen-overlay-v1.0.0-win64.zip`，解压后双击 `screen-overlay.exe`。
+`screen-overlay-v1.0.1-win64.zip`，解压后双击 `screen-overlay.exe`。
 依赖都在同目录，别只把 exe 单独拷走；配置写在 exe 同目录的
 `overlay_config.json`，整个文件夹放固定位置即可。
 
@@ -56,6 +56,8 @@ python test_overlay.py
 
 ## 版本
 
+- v1.0.1 仅打包瘦身：排掉用不到的 Qt 组件（软件 OpenGL / ANGLE / Qml / Quick /
+  非中文翻译等），解压后 96.7MB → 45.2MB，功能与 v1.0.0 完全相同
 - v1.0.0 首个版本：贴图 / 准星、五档定位、置顶与鼠标穿透、托盘菜单
 
 ## 相关项目
