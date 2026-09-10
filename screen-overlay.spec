@@ -22,7 +22,9 @@ a = Analysis(
     ['overlay.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('LICENSE', '.'),  # 许可全文随包发布（PolyForm 的 Notices 条款要求）
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
